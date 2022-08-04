@@ -30,7 +30,7 @@ class DefinitionLoader extends PhpStreamFilter
     /**
      * {@inheritdoc}
      */
-    public function filter($in, $out, &$consumed, $closing)
+    public function filter($in, $out, &$consumed, bool $closing): int
     {
         /** Simple pattern to match if(n?)def..endif constructions */
         static $pattern = '/^#(ifn?def) +(.*?)\n([\s\S]*?)(#endif)/m';

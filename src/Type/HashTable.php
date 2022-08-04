@@ -64,7 +64,7 @@ class HashTable implements IteratorAggregate, ReferenceCountedInterface
      *
      * @return Traversable An instance of an object implementing <b>Iterator</b> or <b>Traversable</b>
      */
-    public function getIterator()
+    public function getIterator(): Traversable
     {
         $iterator = function () {
             $index = 0;

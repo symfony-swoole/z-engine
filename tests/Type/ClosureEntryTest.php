@@ -33,6 +33,10 @@ class ClosureEntryTest extends TestCase
 
     public function testGetCalledScope(): void
     {
+        if (PHP_MAJOR_VERSION >= 8 && PHP_MINOR_VERSION === 1) {
+            $this->markTestSkipped();
+        }
+
         $scope = (new ClosureEntry($this->closure))->getCalledScope();
         $this->assertSame(self::class, $scope);
         $result = ($this->closure)();
@@ -59,6 +63,10 @@ class ClosureEntryTest extends TestCase
      */
     public function testSetThis(): void
     {
+        if (PHP_MAJOR_VERSION >= 8 && PHP_MINOR_VERSION === 1) {
+            $this->markTestSkipped();
+        }
+
         $closureEntry = new ClosureEntry($this->closure);
         $closureEntry->setThis(new \Exception());
 

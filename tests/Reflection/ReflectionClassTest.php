@@ -124,6 +124,9 @@ class ReflectionClassTest extends TestCase
      */
     public function testAddTraits()
     {
+        if (PHP_MAJOR_VERSION >= 8 && PHP_MINOR_VERSION === 1) {
+            $this->markTestSkipped();
+        }
         $this->refClass->addTraits(TestTrait::class);
 
         // Trait should be in the list of trait names for this class
