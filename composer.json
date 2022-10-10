@@ -1,5 +1,5 @@
 {
-    "name": "lisachenko/z-engine",
+    "name": "pixelfederation/z-engine",
     "description": "Library that provides direct access to native PHP structures",
     "type": "library",
     "require": {
