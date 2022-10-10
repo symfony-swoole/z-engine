@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace ZEngine\Reflection;
 
 use FFI\CData;
+use ReflectionException;
 use ReflectionMethod as NativeReflectionMethod;
 use ZEngine\Core;
 use ZEngine\Type\HashTable;
@@ -29,14 +30,14 @@ class ReflectionMethod extends NativeReflectionMethod
         $normalizedName  = strtolower($className);
         $classEntryValue = Core::$executor->classTable->find($normalizedName);
         if ($classEntryValue === null) {
-            throw new \ReflectionException("Class {$className} should be in the engine.");
+            throw new ReflectionException("Class {$className} should be in the engine.");
         }
         $classEntry  = $classEntryValue->getRawClass();
         $methodTable = new HashTable(Core::addr($classEntry->function_table));
 
         $methodEntryValue = $methodTable->find(strtolower($methodName));
         if ($methodEntryValue === null) {
-            throw new \ReflectionException("Method {$methodName} was not found in the class.");
+            throw new ReflectionException("Method {$methodName} was not found in the class.");
         }
         $this->pointer = $methodEntryValue->getRawFunction();
     }
@@ -161,7 +162,7 @@ class ReflectionMethod extends NativeReflectionMethod
 
         $classEntryValue = Core::$executor->classTable->find($lcName);
         if ($classEntryValue === null) {
-            throw new \ReflectionException("Class {$className} was not found");
+            throw new ReflectionException("Class {$className} was not found");
         }
         $this->getCommonPointer()->scope = $classEntryValue->getRawClass();
     }
@@ -169,10 +170,10 @@ class ReflectionMethod extends NativeReflectionMethod
     /**
      * Returns the method prototype or null if no prototype for this method
      */
-    public function getPrototype(): ?ReflectionMethod
+    public function getPrototype(): ReflectionMethod
     {
         if ($this->getCommonPointer()->prototype === null) {
-            return null;
+            throw new ReflectionException('Prototype does not exist.');
         }
 
         return static::fromCData($this->getCommonPointer()->prototype);

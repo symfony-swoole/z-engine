@@ -121,6 +121,7 @@ class ReflectionClassTest extends TestCase
 
     /**
      * @group internal
+     * @runInSeparateProcess
      */
     public function testAddTraits()
     {

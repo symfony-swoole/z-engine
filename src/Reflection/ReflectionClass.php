@@ -121,7 +121,7 @@ class ReflectionClass extends NativeReflectionClass
     /**
      * @inheritDoc
      */
-    public function getName()
+    public function getName(): string
     {
         return StringEntry::fromCData($this->pointer->name)->getStringValue();
     }
@@ -264,7 +264,7 @@ class ReflectionClass extends NativeReflectionClass
     /**
      * @inheritDoc
      */
-    public function getMethod($name)
+    public function getMethod($name): ReflectionMethod
     {
         $functionEntry = $this->methodTable->find(strtolower($name));
         if ($functionEntry === null) {
@@ -278,7 +278,7 @@ class ReflectionClass extends NativeReflectionClass
      * @inheritDoc
      * @return ReflectionMethod[]
      */
-    public function getMethods($filter = null)
+    public function getMethods($filter = null): array
     {
         $methods = [];
         foreach ($this->methodTable as $methodEntryValue) {
@@ -388,8 +388,11 @@ class ReflectionClass extends NativeReflectionClass
             Core::free($this->pointer->trait_names);
         }
 
-        $this->pointer->trait_names = Core::cast('zend_class_name *', Core::addr($memory));
-        $this->pointer->num_traits  = $numResultTraits;
+        $pointer = $this->pointer;
+        $addr = Core::addr($memory);
+        $tmp = Core::cast('zend_class_name *', $addr);;var_dump($this->pointer->trait_names);
+        $this->pointer->trait_names = $tmp;
+        $this->pointer->num_traits  = 0;//$numResultTraits;var_dump($this->pointer->trait_names);
     }
 
     /**
@@ -446,10 +449,10 @@ class ReflectionClass extends NativeReflectionClass
     /**
      * @inheritDoc
      */
-    public function getParentClass(): ?ReflectionClass
+    public function getParentClass(): ReflectionClass|false
     {
         if (!$this->hasParentClass()) {
-            return null;
+            return false;
         }
 
         // For linked class we should look at parent name directly
@@ -593,7 +596,7 @@ class ReflectionClass extends NativeReflectionClass
      *
      * @return iterable|ReflectionValue[]
      */
-    public function getDefaultProperties(): iterable
+    public function getDefaultProperties(): array
     {
         $iterator = function () {
             $propertyIndex = 0;
@@ -630,7 +633,7 @@ class ReflectionClass extends NativeReflectionClass
      * @inheritDoc
      * @return ReflectionClassConstant
      */
-    public function getReflectionConstant($name)
+    public function getReflectionConstant($name): ReflectionClassConstant|false
     {
         $constantEntry = $this->constantsTable->find($name);
         if ($constantEntry === null) {
