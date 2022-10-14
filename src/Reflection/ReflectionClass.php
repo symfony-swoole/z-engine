@@ -388,11 +388,8 @@ class ReflectionClass extends NativeReflectionClass
             Core::free($this->pointer->trait_names);
         }
 
-        $pointer = $this->pointer;
-        $addr = Core::addr($memory);
-        $tmp = Core::cast('zend_class_name *', $addr);;var_dump($this->pointer->trait_names);
-        $this->pointer->trait_names = $tmp;
-        $this->pointer->num_traits  = 0;//$numResultTraits;var_dump($this->pointer->trait_names);
+        $this->pointer->trait_names = Core::cast('zend_class_name *', Core::addr($memory));
+        $this->pointer->num_traits  = $numResultTraits;
     }
 
     /**
