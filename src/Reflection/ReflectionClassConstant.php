@@ -65,7 +65,7 @@ class ReflectionClassConstant extends NativeReflectionClassConstant
         $reflectionConstant = (new ReflectionClass(static::class))->newInstanceWithoutConstructor();
         $className          = StringEntry::fromCData($constantEntry->ce->name);
         call_user_func(
-            [$reflectionConstant, 'parent::__construct'],
+            $reflectionConstant->__construct(...),
             $className->getStringValue(),
             $constantName
         );

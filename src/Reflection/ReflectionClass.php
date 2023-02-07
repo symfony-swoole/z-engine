@@ -110,7 +110,7 @@ class ReflectionClass extends NativeReflectionClass
         $reflectionClass->initLowLevelStructures($classEntry);
         $classNameValue = StringEntry::fromCData($classEntry->name);
         try {
-            call_user_func([$reflectionClass, 'parent::__construct'], $classNameValue->getStringValue());
+            call_user_func($reflectionClass->__construct(...), $classNameValue->getStringValue());
         } catch (\ReflectionException $e) {
             // This can happen during the class-loading. But we still can work with it.
         }
