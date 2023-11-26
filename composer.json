@@ -1,5 +1,5 @@
 {
-    "name": "openswoole-bundle/z-engine",
+    "name": "swoole-bundle/z-engine",
     "description": "Library that provides direct access to native PHP structures",
     "type": "library",
     "require": {
