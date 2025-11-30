@@ -20,6 +20,13 @@ class TestClass
 
     private int $secret = 100500;
 
+    public readonly int $readOnlyProperty;
+
+    public function __construct()
+    {
+        $this->readOnlyProperty = 1;
+    }
+
     /**
      * This method will be removed during the test, do not call it or use it
      */
