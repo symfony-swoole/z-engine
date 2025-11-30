@@ -126,6 +126,11 @@ class ReflectionClass extends NativeReflectionClass
         return StringEntry::fromCData($this->pointer->name)->getStringValue();
     }
 
+    public function getProperty(string $name): ReflectionProperty
+    {
+        return new ReflectionProperty($this->getName(), $name);
+    }
+
     /**
      * @inheritDoc
      */
