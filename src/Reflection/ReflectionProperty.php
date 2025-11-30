@@ -12,10 +12,12 @@ declare(strict_types=1);
 
 namespace ZEngine\Reflection;
 
+use FFI;
 use FFI\CData;
 use ReflectionProperty as NativeReflectionProperty;
 use ZEngine\Core;
 use ZEngine\Type\HashTable;
+use ZEngine\Type\ObjectEntry;
 use ZEngine\Type\StringEntry;
 
 /**
@@ -34,6 +36,11 @@ class ReflectionProperty extends NativeReflectionProperty
 {
     private CData $pointer;
 
+    /**
+     * Flag to track if readonly restriction should be bypassed
+     */
+    private bool $bypassReadonly = false;
+
     public function __construct(string $className, string $propertyName)
     {
         parent::__construct($className, $propertyName);
@@ -45,8 +52,7 @@ class ReflectionProperty extends NativeReflectionProperty
         }
         $classEntry      = $classEntryValue->getRawClass();
         $propertiesTable = new HashTable(Core::addr($classEntry->properties_info));
-
-        $propertyEntry = $propertiesTable->find(strtolower($propertyName));
+        $propertyEntry = $propertiesTable->find($propertyName);
         if ($propertyEntry === null) {
             throw new \ReflectionException("Property {$propertyName} was not found in the class.");
         }
@@ -118,6 +124,73 @@ class ReflectionProperty extends NativeReflectionProperty
         } else {
             $this->pointer->flags &= (~Core::ZEND_ACC_STATIC);
         }
+    }
+
+    /**
+     * Sets whether readonly restriction should be bypassed
+     *
+     * When set to false, setValue() will use FFI to directly write to the property,
+     * bypassing PHP's readonly checks without modifying internal structures.
+     *
+     * @param bool $isReadOnly Whether the property should be treated as readonly
+     */
+    public function setReadOnly(bool $isReadOnly = true): void
+    {
+        $this->bypassReadonly = !$isReadOnly;
+    }
+
+    /**
+     * Sets the value of a property, bypassing readonly restrictions if configured
+     *
+     * If setReadOnly(false) was called, this method will use FFI to directly write
+     * to the property's memory location, bypassing PHP's readonly checks.
+     * Otherwise, it delegates to the parent implementation.
+     *
+     * @param mixed $objectOrValue The object instance, or the value for static properties
+     * @param mixed $value The value to set (optional for static properties)
+     */
+    public function setValue(mixed $objectOrValue, mixed $value = null): void
+    {
+        // Handle static properties - if this is a static property and only one arg is passed
+        if ($this->isStatic() && func_num_args() === 1) {
+            parent::setValue($objectOrValue);
+            return;
+        }
+
+        $object = $objectOrValue;
+
+        if (!is_object($object)) {
+            // For static properties with two args
+            parent::setValue($objectOrValue, $value);
+            return;
+        }
+
+        // If readonly bypass is not enabled, use parent implementation
+        if (!$this->bypassReadonly) {
+            parent::setValue($object, $value);
+            return;
+        }
+
+        // Use FFI to bypass readonly restriction
+        // Get the object's internal structure
+        $objectEntry = new ObjectEntry($object);
+        $reflObj = new \ReflectionClass($objectEntry);
+        $ptrProp = $reflObj->getProperty('pointer');
+        $objPointer = $ptrProp->getValue($objectEntry);
+
+        // Calculate the address of the property's zval
+        // The offset is in bytes from the start of the zend_object structure
+        $objectBase = Core::cast('char*', $objPointer);
+        $propertyZvalPtr = Core::cast('zval*', $objectBase + $this->pointer->offset);
+
+        // Create a ReflectionValue for the new value and copy it to the property
+        $newValueReflection = new ReflectionValue($value);
+
+        // Clean the target zval first (important for refcounted values)
+        $propertyZvalPtr->u1->type_info = ReflectionValue::IS_NULL;
+
+        // Copy the new value
+        $newValueReflection->copy($propertyZvalPtr);
     }
 
     /**
