@@ -13,6 +13,8 @@
   xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
   colors="true"
   bootstrap="./tests/bootstrap.php"
+  cacheDirectory=".phpunit.cache"
+  failOnPhpunitDeprecation="true"
 >
 <!--  <coverage>-->
 <!--    <report>-->
@@ -34,4 +36,9 @@
   <logging>
     <junit outputFile="./build/logs/junit.xml"/>
   </logging>
+  <source>
+    <include>
+      <directory>./src/</directory>
+    </include>
+  </source>
 </phpunit>
