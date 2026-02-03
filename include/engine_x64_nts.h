@@ -232,7 +232,7 @@ typedef struct _zend_ast_zval {
 /* Separate structure for function and class declaration, as they need extra information. */
 typedef struct _zend_ast_decl {
 	zend_ast_kind kind;
-	zend_ast_attr attr; /* Unused - for structure compatibility */
+	zend_ast_attr attr;
 	uint32_t start_lineno;
 	uint32_t end_lineno;
 	uint32_t flags;
@@ -332,14 +332,6 @@ struct _zend_op {
 	uint8_t op1_type;     /* IS_UNUSED, IS_CONST, IS_TMP_VAR, IS_VAR, IS_CV */
 	uint8_t op2_type;     /* IS_UNUSED, IS_CONST, IS_TMP_VAR, IS_VAR, IS_CV */
 	uint8_t result_type;  /* IS_UNUSED, IS_CONST, IS_TMP_VAR, IS_VAR, IS_CV */
-//#ifdef ZEND_VERIFY_TYPE_INFERENCE
-	uint32_t op1_use_type;
-	uint32_t op2_use_type;
-	uint32_t result_use_type;
-	uint32_t op1_def_type;
-	uint32_t op2_def_type;
-	uint32_t result_def_type;
-//#endif
 };
 
 
@@ -381,9 +373,10 @@ typedef struct _zend_oparray_context {
 	int        last_brk_cont;
 	zend_brk_cont_element *brk_cont_array;
 	HashTable *labels;
-	const zend_property_info *active_property_info;
+	zend_string *active_property_info_name;
 	zend_property_hook_kind active_property_hook_kind;
 	bool       in_jmp_frameless_branch;
+	bool has_assigned_to_http_response_header;
 } zend_oparray_context;
 
 typedef struct _zend_property_info {
@@ -477,7 +470,7 @@ struct _zend_op_array {
 };
 
 /* zend_internal_function_handler */
-typedef void (*zif_handler)(INTERNAL_FUNCTION_PARAMETERS);
+typedef void (ZEND_FASTCALL *zif_handler)(INTERNAL_FUNCTION_PARAMETERS);
 
 typedef struct _zend_internal_function {
 	/* Common elements */
@@ -635,6 +628,7 @@ typedef zend_function *(*zend_object_get_constructor_t)(zend_object *object);
 typedef void (*zend_object_dtor_obj_t)(zend_object *object);
 typedef void (*zend_object_free_obj_t)(zend_object *object);
 typedef zend_object* (*zend_object_clone_obj_t)(zend_object *object);
+typedef zend_object* (*zend_object_clone_obj_with_t)(zend_object *object, const zend_class_entry *scope, const HashTable *properties);
 
 /* Get class name for display in var_dump and other debugging functions.
  * Must be defined and must return a non-NULL value. */
@@ -664,6 +658,7 @@ struct _zend_object_handlers {
 	zend_object_free_obj_t					free_obj;             /* required */
 	zend_object_dtor_obj_t					dtor_obj;             /* required */
 	zend_object_clone_obj_t					clone_obj;            /* optional */
+	zend_object_clone_obj_with_t			clone_obj_with;       /* optional */
 	zend_object_read_property_t				read_property;        /* required */
 	zend_object_write_property_t			write_property;       /* required */
 	zend_object_read_dimension_t			read_dimension;       /* required */
@@ -722,7 +717,6 @@ typedef struct _zend_stack {
 } zend_stack;
 
 /* zend_globals.h */
-typedef struct _zend_vm_stack *zend_vm_stack;
 typedef struct _zend_ini_entry zend_ini_entry;
 
 typedef enum {
@@ -1333,6 +1327,10 @@ struct _zend_executor_globals {
 	void *bailout;
 
 	int error_reporting;
+
+	bool fatal_error_backtrace_on;
+	zval last_fatal_error_backtrace;
+
 	int exit_status;
 
 	HashTable *function_table;	/* function symbol table */
@@ -1345,7 +1343,7 @@ struct _zend_executor_globals {
 	size_t         vm_stack_page_size;
 
 	struct _zend_execute_data *current_execute_data;
-	zend_class_entry *fake_scope; /* used to avoid checks accessing properties */
+	const zend_class_entry *fake_scope; /* used to avoid checks accessing properties */
 
 	uint32_t jit_trace_num; /* Used by tracing JIT to reference the currently running trace */
 
@@ -1442,7 +1440,8 @@ struct _zend_executor_globals {
 	size_t fiber_stack_size;
 
 	/* If record_errors is enabled, all emitted diagnostics will be recorded,
-	 * in addition to being processed as usual. */
+	 * and their processing is delayed until zend_emit_recorded_errors()
+	 * is called or a fatal diagnostic is emitted. */
 	bool record_errors;
 	uint32_t num_errors;
 	zend_error_info **errors;
@@ -1467,8 +1466,8 @@ struct _zend_executor_globals {
 
 	void *reserved[6];
 };
-typedef struct _zend_executor_globals zend_executor_globals;
 typedef struct _zend_compiler_globals zend_compiler_globals;
+typedef struct _zend_executor_globals zend_executor_globals;
 
 #ifndef ZTS
 ZEND_API zend_compiler_globals compiler_globals;
@@ -1621,7 +1620,7 @@ ZEND_API int zendparse(void);
 ZEND_API void ZEND_FASTCALL zend_ast_destroy(zend_ast *ast);
 ZEND_API zend_ast * ZEND_FASTCALL zend_ast_create_list_0(zend_ast_kind kind);
 ZEND_API zend_ast * ZEND_FASTCALL zend_ast_list_add(zend_ast *list, zend_ast *op);
-ZEND_API zend_ast * ZEND_FASTCALL zend_ast_create_zval_ex(zval *zv, zend_ast_attr attr);
+ZEND_API zend_ast * ZEND_FASTCALL zend_ast_create_zval_ex(const zval *zv, zend_ast_attr attr);
 ZEND_API zend_ast * ZEND_FASTCALL zend_ast_create_0(zend_ast_kind kind);
 ZEND_API zend_ast * ZEND_FASTCALL zend_ast_create_1(zend_ast_kind kind, zend_ast *child);
 ZEND_API zend_ast * ZEND_FASTCALL zend_ast_create_2(zend_ast_kind kind, zend_ast *child1, zend_ast *child2);
