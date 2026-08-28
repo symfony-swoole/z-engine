@@ -22,7 +22,7 @@ use ZEngine\Type\OpLine;
 
 class ExecutionDataTest extends TestCase
 {
-    public function testHasPrevious()
+    public function testHasPrevious(): void
     {
         $hasPrevious = Core::$executor->getExecutionState()->hasPrevious();
         // This method is definitely called from PHPUnit, so it MUST contain previous entries
@@ -40,9 +40,18 @@ class ExecutionDataTest extends TestCase
     }
 
     #[Group('internal')]
-    public function testGetSymbolTable()
+    public function testGetSymbolTable(): void
     {
-        $symTable = Core::$executor->getExecutionState()->getSymbolTable();
+        $executionState = Core::$executor->getExecutionState();
+
+        // Engine doesn't allocate a symbol table for an ordinary frame, compiled variables are used instead
+        $this->assertFalse($executionState->hasSymbolTable());
+
+        // ...it is built lazily, and get_defined_vars() is the userland way to ask the engine for it
+        get_defined_vars();
+        $this->assertTrue($executionState->hasSymbolTable());
+
+        $symTable = $executionState->getSymbolTable();
         $this->assertNotNull($symTable);
         $this->markTestIncomplete('Segfaults if we try to look for local variables');
     }
@@ -51,7 +60,7 @@ class ExecutionDataTest extends TestCase
      * This test is tricky one to understand: PHP engine allocates a stack frame, where each variable is stored in
      * the stack frame. Thus, $a variable will be stored in first slot in the stack frame and we can access it to check
      */
-    public function testGetCallVariableByNumber()
+    public function testGetCallVariableByNumber(): void
     {
         // Do not use constants here to prevent opcode optimization and inlining
         $expected = microtime(true);
