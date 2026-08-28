@@ -93,6 +93,21 @@ class ReflectionValueTest extends TestCase
         $this->assertSame(self::class, $className->getStringValue());
     }
 
+    public function testGetRawClassOfClassAlias()
+    {
+        // class_alias() registers the alias in the class table with type IS_ALIAS_PTR, not
+        // IS_PTR/IS_INDIRECT like a normally-declared class. getRawClass() must accept it too.
+        class_alias(self::class, ReflectionValueTestAlias::class);
+
+        $classEntry = Core::$executor->classTable->find(strtolower(ReflectionValueTestAlias::class));
+        $rawClass   = $classEntry->getRawClass();
+        $this->assertInstanceOf(CData::class, $rawClass);
+
+        // The class entry an alias resolves to is the original class, not the alias name
+        $className = StringEntry::fromCData($rawClass->name);
+        $this->assertSame(self::class, $className->getStringValue());
+    }
+
     public function testGetRawFunction()
     {
         $functionEntry = Core::$executor->functionTable->find('var_dump');
