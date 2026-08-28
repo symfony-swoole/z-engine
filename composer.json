@@ -1,6 +1,6 @@
 {
     "name": "swoole-bundle/z-engine",
-    "version": "8.5.1",
+    "version": "8.5.2",
     "description": "Library that provides direct access to native PHP structures",
     "type": "library",
     "require": {
