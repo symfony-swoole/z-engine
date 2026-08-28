@@ -67,6 +67,20 @@ use ZEngine\Type\OpLine;
  */
 class ExecutionData
 {
+    /**
+     * Amount of bits to shift the type_info of the "This" zval to get the call_info flags
+     *
+     * @see zend_compile.h:ZEND_CALL_INFO_SHIFT
+     */
+    private const ZEND_CALL_INFO_SHIFT = 16;
+
+    /**
+     * Flag in the call_info that says the engine has allocated a symbol table for this stack frame
+     *
+     * @see zend_compile.h:ZEND_CALL_HAS_SYMBOL_TABLE
+     */
+    private const ZEND_CALL_HAS_SYMBOL_TABLE = (1 << 4);
+
     private CData $pointer;
 
     public function __construct(CData $pointer)
@@ -193,10 +207,26 @@ class ExecutionData
     }
 
     /**
+     * Checks if the engine has already built a symbol table for this stack frame
+     *
+     * The "symbol_table" field of zend_execute_data is only initialized when this flag is set, reading it otherwise
+     * gives an uninitialized value from the reused VM stack.
+     *
+     * @internal
+     */
+    public function hasSymbolTable(): bool
+    {
+        $callInfo = $this->pointer->This->u1->type_info >> self::ZEND_CALL_INFO_SHIFT;
+
+        return ($callInfo & self::ZEND_CALL_HAS_SYMBOL_TABLE) !== 0;
+    }
+
+    /**
      * Returns the current symbol table.
      *
      * Engine doesn't use symbol tables. Instead optimized opcodes and operands are used.
      * Symbol table is used only for tricky cases like variable variable $$variable and super-globals.
+     * It is built lazily, so a frame has no symbol table until something like get_defined_vars() asks for it.
      *
      * <span style="color:red; font-weight: bold">Warning!</span> Do not use it as it's not recommended.
      *
@@ -204,6 +234,13 @@ class ExecutionData
      */
     public function getSymbolTable(): HashTable
     {
+        if (!$this->hasSymbolTable()) {
+            throw new \LogicException(
+                'There is no symbol table for this stack frame. Engine allocates it lazily, '
+                . 'call get_defined_vars() in that frame to force its creation.'
+            );
+        }
+
         return new HashTable($this->pointer->symbol_table);
     }
 
