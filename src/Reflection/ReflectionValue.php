@@ -239,8 +239,12 @@ class ReflectionValue implements ReferenceCountedInterface
      */
     public function getRawClass(): CData
     {
-        if ($this->pointer->u1->v->type !== self::IS_PTR && $this->pointer->u1->v->type !== self::IS_INDIRECT) {
-            throw new \UnexpectedValueException('Class entry available only for the type IS_PTR or IS_INDIRECT');
+        if (
+            $this->pointer->u1->v->type !== self::IS_PTR
+            && $this->pointer->u1->v->type !== self::IS_INDIRECT
+            && $this->pointer->u1->v->type !== self::IS_ALIAS_PTR
+        ) {
+            throw new \UnexpectedValueException('Class entry available only for the type IS_PTR, IS_INDIRECT or IS_ALIAS_PTR');
         }
 
         return $this->pointer->value->ce;
